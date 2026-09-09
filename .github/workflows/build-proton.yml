@@ -201,10 +201,16 @@ jobs:
           fi
 
           # Generate Proton profile.json
+          # "-steam-unix" in versionName is load-bearing, not cosmetic:
+          #   "steam" -> ComponentsScreen.isSteamCompatible() (lsteamclient bridge capability)
+          #   "unix"  -> GameSettings.kt unixCompatible chip (paired with the FEXCore
+          #              profile's own versionName also containing "unix")
+          #   "arm64ec" (already in ARCH_NAME for that arch) -> WineInfo.fromIdentifier()
+          #              fallback; must stay absent for the x86_64 build.
           cat > $GITHUB_WORKSPACE/profile.json << EOF
           {
             "type": "Proton",
-            "versionName": "11.0-2-${ARCH_NAME}",
+            "versionName": "11.0-2-${ARCH_NAME}-steam-unix",
             "versionCode": 1,
             "description": "Proton 11.0-2 ${ARCH_NAME} (bionic) — stock Valve + runtime ntsync (kernel driver, userspace fallback) + fsync + Android fixes. SDK 28 + 16KB pages. Needs a fresh arm64ec container.",
             "files": [],
@@ -220,7 +226,7 @@ jobs:
           cat > $GITHUB_WORKSPACE/profile-wine.json << EOF
           {
             "type": "Wine",
-            "versionName": "11.0-2-${ARCH_NAME}",
+            "versionName": "11.0-2-${ARCH_NAME}-steam-unix",
             "versionCode": 0,
             "description": "Proton 11.0-2 ${ARCH_NAME} (bionic) — stock Valve + runtime ntsync (kernel driver, userspace fallback) + fsync + Android fixes. SDK 28 + 16KB pages. Needs a fresh arm64ec container.",
             "files": [],
@@ -250,13 +256,13 @@ jobs:
           # faster than xz. -T0 = all cores, -19 = high ratio (small download).
           cp $GITHUB_WORKSPACE/prefixPack.txz .
           cp $GITHUB_WORKSPACE/profile.json .
-          tar -I 'zstd -T0 -19' -cf proton-11.0-2-$ARCH_NAME.wcp bin lib share prefixPack.txz profile.json
-          mv proton-11.0-2-$ARCH_NAME.wcp $GITHUB_WORKSPACE/
+          tar -I 'zstd -T0 -19' -cf proton-11.0-2-$ARCH_NAME-steam-unix.wcp bin lib share prefixPack.txz profile.json
+          mv proton-11.0-2-$ARCH_NAME-steam-unix.wcp $GITHUB_WORKSPACE/
 
           # Create Wine WCP for CMOD & Ludashi - wcp.xz format
           cp $GITHUB_WORKSPACE/profile-wine.json profile.json
-          tar cJf proton-wine-11.0-2-$ARCH_NAME.wcp.xz bin lib share prefixPack.txz profile.json
-          mv proton-wine-11.0-2-$ARCH_NAME.wcp.xz $GITHUB_WORKSPACE/
+          tar cJf proton-wine-11.0-2-$ARCH_NAME-steam-unix.wcp.xz bin lib share prefixPack.txz profile.json
+          mv proton-wine-11.0-2-$ARCH_NAME-steam-unix.wcp.xz $GITHUB_WORKSPACE/
 
       - name: Upload build artifacts
         run: |
@@ -271,14 +277,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: proton-${{ env.ARCH_NAME }}
-          path: proton-11.0-2-${{ env.ARCH_NAME }}.wcp
+          path: proton-11.0-2-${{ env.ARCH_NAME }}-steam-unix.wcp
           retention-days: 30
 
       - name: Upload Wine build artifacts for ${{ matrix.arch }}
         uses: actions/upload-artifact@v4
         with:
           name: proton-wine-${{ env.ARCH_NAME }}
-          path: proton-wine-11.0-2-${{ env.ARCH_NAME }}.wcp.xz
+          path: proton-wine-11.0-2-${{ env.ARCH_NAME }}-steam-unix.wcp.xz
           retention-days: 30
 
   release:
@@ -356,11 +362,11 @@ jobs:
 
             ### WCP Files
             **Proton Type:**
-            - `proton-11.0-2-x86_64.wcp` - For GameNative
-            - `proton-11.0-2-arm64ec.wcp` - For GameNative
+            - `proton-11.0-2-x86_64-steam-unix.wcp` - For GameNative
+            - `proton-11.0-2-arm64ec-steam-unix.wcp` - For GameNative
 
             **Wine Type:**
-            - `proton-wine-11.0-2-x86_64.wcp.xz` - For Winlator for CMOD & Ludashi
-            - `proton-wine-11.0-2-arm64ec.wcp.xz` - For Winlator for CMOD & Ludashi
+            - `proton-wine-11.0-2-x86_64-steam-unix.wcp.xz` - For Winlator for CMOD & Ludashi
+            - `proton-wine-11.0-2-arm64ec-steam-unix.wcp.xz` - For Winlator for CMOD & Ludashi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
