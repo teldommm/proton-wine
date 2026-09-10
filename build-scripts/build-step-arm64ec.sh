@@ -272,6 +272,11 @@ do
       # fix build
       "arm64ec/programs_wineboot_wineboot_c.patch"
 
+      # revert broken memcpy/memmove/memset exit-thunk (upstream "HACK, bug 25841"
+      # workaround for LLVM issue 101355) — confirmed to break process startup on
+      # our FEX-based arm64ec dispatch; see build investigation notes
+      "test-bylaws/dlls_winecrt0_arm64ec_c_revert.patch"
+
       # 1. Thread Suspension Patches
       "test-bylaws/dlls_ntdll_unix_debug_c.patch"
       "test-bylaws/dlls_ntdll_unix_signal_arm64_c.patch"
