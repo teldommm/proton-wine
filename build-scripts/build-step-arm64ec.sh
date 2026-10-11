@@ -188,6 +188,7 @@ do
       "common/dlls_nsiproxy_sys_nsi_common_h.patch"
       "common/dlls_user32_makefile_in.patch"
       "common/dlls_ws2_32_socket_c.patch"
+      "common/dlls_crypt32_cert_c.patch"
       "common/server_token_c.patch"
       "common/server_unicode_c.patch"
 
@@ -267,6 +268,7 @@ do
 
       # bionic bug-fixes
       "common/dlls_ntdll_unix_env_c.patch"
+      "common/dlls_ntdll_unix_env_locale_c.patch"
       "common/dlls_shell32_shlfileop_c.patch"
 
       # rsaenh
