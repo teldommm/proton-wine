@@ -292,6 +292,10 @@ do
 
       # 2. Process and Virtual Memory Management
       "test-bylaws/dlls_ntdll_unix_process_c.patch"
+
+      # 3. Keep the host SSBS bit across signal returns (Wine MR 12262). Must come after the
+      #    unix_private.h and signal_arm64.c patches above. WINE_FORCE_SSBS=0 restores stock behaviour.
+      "arm64ec/ssbs_preserve_cpsr.patch"
     )
 
     for patch in "${PATCHES[@]}"; do
