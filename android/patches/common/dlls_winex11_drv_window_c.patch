@@ -1,5 +1,5 @@
 diff --git a/dlls/winex11.drv/window.c b/dlls/winex11.drv/window.c
-index d4f4f6fb664..83e420d075d 100644
+index d4f4f6f..b43bfc1 100644
 --- a/dlls/winex11.drv/window.c
 +++ b/dlls/winex11.drv/window.c
 @@ -646,7 +646,9 @@ static void sync_window_style( struct x11drv_win_data *data )
@@ -45,27 +45,31 @@ index d4f4f6fb664..83e420d075d 100644
  
      XChangeProperty( display, window, x11drv_atom(XdndAware),
                       XA_ATOM, 32, PropModeReplace, (unsigned char*)&dndVersion, 1 );
-@@ -2418,6 +2427,19 @@ void set_net_active_window( HWND hwnd, HWND previous )
+@@ -2418,6 +2427,23 @@ void set_net_active_window( HWND hwnd, HWND previous )
      TRACE( "requesting _NET_ACTIVE_WINDOW %p/%lx serial %lu\n", hwnd, window, data->net_active_window_serial );
      XSendEvent( data->display, DefaultRootWindow( data->display ), False,
                  SubstructureRedirectMask | SubstructureNotifyMask, &xev );
 +    XFlush( data->display );
 +
 +#ifdef __ANDROID__
-+    DWORD pid = 0;
++    {
++        /* format 32 properties are arrays of long for Xlib, whatever its size */
++        DWORD pid = 0;
++        long pid_data, hwnd_data[2] = { (ULONG_PTR)hwnd & 0xffffffff, (ULONG64)(ULONG_PTR)hwnd >> 32 };
 +
-+    NtUserGetWindowThread( hwnd, &pid );
++        NtUserGetWindowThread( hwnd, &pid );
++        pid_data = pid;
 +
-+    XChangeProperty(data->display, window, x11drv_atom(_NET_WM_PID),
-+                    XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&pid, 1);
-+
-+    XChangeProperty( data->display, window, x11drv_atom(_NET_WM_HWND),
-+                      XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&hwnd, 2 );
++        XChangeProperty( data->display, window, x11drv_atom(_NET_WM_PID),
++                         XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&pid_data, 1 );
++        XChangeProperty( data->display, window, x11drv_atom(_NET_WM_HWND),
++                         XA_CARDINAL, 32, PropModeReplace, (unsigned char *)hwnd_data, 2 );
++    }
 +#endif
  }
  
  BOOL window_is_reparenting( HWND hwnd )
-@@ -2823,7 +2845,9 @@ static void create_whole_window( struct x11drv_win_data *data )
+@@ -2823,7 +2849,9 @@ static void create_whole_window( struct x11drv_win_data *data )
      data->pending_state.rect = data->current_state.rect;
      data->desired_state.rect = data->current_state.rect;
  
@@ -75,7 +79,7 @@ index d4f4f6fb664..83e420d075d 100644
      set_initial_wm_hints( data->display, data->whole_window );
      set_wm_hints( data );
  
-@@ -3158,8 +3182,10 @@ BOOL X11DRV_CreateWindow( HWND hwnd )
+@@ -3158,8 +3186,10 @@ BOOL X11DRV_CreateWindow( HWND hwnd )
              if (!wcscmp( winstation_name, winsta0 ))
              {
                  /* listen to raw xinput event in the desktop window thread */

@@ -189,6 +189,7 @@ do
       "common/dlls_user32_makefile_in.patch"
       "common/dlls_ws2_32_socket_c.patch"
       "common/dlls_crypt32_cert_c.patch"
+      "common/dlls_win32u_sysparams_c.patch"
       "common/server_token_c.patch"
       "common/server_unicode_c.patch"
 
@@ -220,9 +221,17 @@ do
       "common/dlls_winex11_drv_x11drv_h.patch"
       "common/dlls_winex11_drv_x11drv_main_c.patch"
 
+      # Android window and pointer fixes (Battle.net windows, clipped-cursor clicks)
+      "common/dlls_winex11_drv_window_c_net_wm_hwnd.patch"
+      "common/dlls_winex11_drv_init_c.patch"
+      "common/dlls_winex11_drv_mouse_c_clip_regrab.patch"
+      "common/dlls_winex11_drv_mouse_c_clip_grab_foreground.patch"
+
       # address space patches
       "common/loader_preloader_c.patch"
       "arm64ec/dlls_ntdll_unix_virtual_c.patch"
+      "common/server_mapping_c_image_pool.patch"
+      "common/dlls_ntdll_unix_virtual_c_relocate_high_allocs.patch"
 
       # syscall Patches (use test-bylaws below)
       # "arm64ec/dlls_wow64_syscall_c.patch"
@@ -274,6 +283,9 @@ do
       # rsaenh
       "common/dlls_rsaenh_rsaenh_c.patch"
 
+      # hide the wine_get_* ntdll exports (wine-staging HideWineExports, or WINE_HIDE_EXPORTS=1)
+      "common/dlls_ntdll_loader_c_hide_wine_exports.patch"
+
       # fix build
       "arm64ec/programs_wineboot_wineboot_c.patch"
 
@@ -281,6 +293,13 @@ do
       # workaround for LLVM issue 101355) — confirmed to break process startup on
       # our FEX-based arm64ec dispatch; see build investigation notes
       "test-bylaws/dlls_winecrt0_arm64ec_c_revert.patch"
+
+      # emulator notifications for protected launchers (Battle.net); the non-image view
+      # notification only fires for a FEX that exports BTCpu64NotifyNonImageViews
+      "arm64ec/dlls_ntdll_ntdll_spec.patch"
+      "arm64ec/dlls_ntdll_signal_arm64ec_c.patch"
+      "arm64ec/dlls_ntdll_unwind_h.patch"
+      "arm64ec/dlls_sechost_makefile_in.patch"
 
       # 1. Thread Suspension Patches
       "test-bylaws/dlls_ntdll_unix_debug_c.patch"

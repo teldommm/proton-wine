@@ -1,0 +1,83 @@
+diff --git a/dlls/winex11.drv/mouse.c b/dlls/winex11.drv/mouse.c
+index 9a4f17a..d16a99f 100644
+--- a/dlls/winex11.drv/mouse.c
++++ b/dlls/winex11.drv/mouse.c
+@@ -452,6 +452,28 @@ void x11drv_xinput2_init( struct x11drv_thread_data *data )
+ 
+ #endif /* HAVE_X11_EXTENSIONS_XINPUT2_H */
+ 
++#ifdef __ANDROID__
++static Window clip_grab_window;  /* window the pointer grab is actually held on */
++
++/* GameNative's X server delivers ButtonPress during a pointer grab only to clients that
++ * selected it on the grab window itself. Nobody selects it on the shared clip window
++ * (only one client may), so grab on the foreground window, which this thread already
++ * listens to, and only confine the pointer to the clip window. */
++static Window get_clip_grab_window( struct x11drv_thread_data *data, Window clip_window )
++{
++    HWND foreground = NtUserGetForegroundWindow();
++    struct x11drv_win_data *fg_data;
++    Window grab_window = clip_window;
++
++    if (foreground && (fg_data = get_win_data( foreground )))
++    {
++        if (fg_data->whole_window && fg_data->display == data->display) grab_window = fg_data->whole_window;
++        release_win_data( fg_data );
++    }
++    return grab_window;
++}
++#endif
++
+ /***********************************************************************
+  *		grab_clipping_window
+  *
+@@ -475,7 +497,14 @@ static BOOL grab_clipping_window( const RECT *clip )
+ 
+     /* Games may clip the cursor again every frame. Re-grabbing the pointer each time is
+      * redundant, and on some X servers (GameNative) button presses get lost in between. */
++#ifdef __ANDROID__
++    /* ...unless the grab window changed (the foreground window was recreated, e.g. on a
++     * fullscreen switch, which releases the grab on the X side) */
++    if (data->clipping_cursor && clipping_cursor && EqualRect( clip, &clip_rect ) &&
++        clip_grab_window == get_clip_grab_window( data, clip_window )) return TRUE;
++#else
+     if (data->clipping_cursor && clipping_cursor && EqualRect( clip, &clip_rect )) return TRUE;
++#endif
+ 
+     if (keyboard_grabbed)
+     {
+@@ -505,10 +534,24 @@ static BOOL grab_clipping_window( const RECT *clip )
+         clip->right < clip_rect.right || clip->bottom < clip_rect.bottom)
+         data->warp_serial = NextRequest( data->display );
+ 
++#ifdef __ANDROID__
++    {
++        Window grab_window = get_clip_grab_window( data, clip_window );
++
++        if (!XGrabPointer( data->display, grab_window, False,
++                           PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
++                           GrabModeAsync, GrabModeAsync, clip_window, None, CurrentTime ))
++        {
++            clipping_cursor = TRUE;
++            clip_grab_window = grab_window;
++        }
++    }
++#else
+     if (!XGrabPointer( data->display, clip_window, False,
+                        PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
+                        GrabModeAsync, GrabModeAsync, clip_window, None, CurrentTime ))
+         clipping_cursor = TRUE;
++#endif
+ 
+     SERVER_START_REQ( set_cursor )
+     {
+@@ -551,6 +594,9 @@ void ungrab_clipping_window(void)
+     XUnmapWindow( data->display, clip_window );
+     if (clipping_cursor) XUngrabPointer( data->display, CurrentTime );
+     clipping_cursor = FALSE;
++#ifdef __ANDROID__
++    clip_grab_window = 0;
++#endif
+     data->clipping_cursor = FALSE;
+     x11drv_xinput2_disable( data->display, DefaultRootWindow( data->display ) );
+ }
